@@ -1,0 +1,22 @@
+# ===== 构建产物：体积超过 GitHub 单文件 100MB 上限，不入库 =====
+SillyTavern.apk
+SillyTavern.apk.idsig
+*.idsig
+app/assets/st.zip
+
+# ===== 签名密钥：绝不提交（升级 APK 需沿用同一把，请自行保管）=====
+app/tavern.jks
+*.jks
+*.keystore
+
+# ===== 构建中间产物 =====
+app/build/
+app/build-precheck/
+app/output/
+.stbuild/
+
+# ===== 本地临时素材 / 编辑器 =====
+*.log
+.DS_Store
+.idea/
+.vscode/
