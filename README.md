@@ -15,7 +15,8 @@
 Android 10+ / arm64（另含 x86_64），建议 6GB 内存、可用存储 ≥ 1.5GB；允许「未知来源安装」。
 **首次启动需解压约 2.6 万个文件到私有目录，约 10~30 秒**，停在启动屏等待即可。
 
-> `SillyTavern.apk`（约 230MB）是构建产物，超过 GitHub 单文件 100MB 上限，**不纳入 git**；请用 `build.sh` 生成，或从交付渠道 / Releases 获取。
+> `SillyTavern.apk`（约 230MB）是构建产物，超过 GitHub 单文件 100MB 上限，**不纳入 git**。
+> 安装包直达：[Releases / v1.0.4 / SillyTavern.apk](https://github.com/cdxDNRF/-app/releases/download/v1.0.4/SillyTavern.apk)，也可用 `build.sh` 自行构建。
 
 ## 目录
 
