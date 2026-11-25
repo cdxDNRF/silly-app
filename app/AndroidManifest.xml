@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.xdu.tavern"
-    android:versionCode="5"
-    android:versionName="1.0.4">
+    android:versionCode="6"
+    android:versionName="1.0.5">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
 
@@ -36,5 +36,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 只读导出通道：外部不能直接访问，仅当用户主动分享/打开时由本应用
+             通过 Intent + FLAG_GRANT_READ_URI_PERMISSION 临时授权单个文件。
+             不申请任何存储权限，不改变「默认零残留」的数据策略。 -->
+        <provider
+            android:name=".ExportProvider"
+            android:authorities="com.xdu.tavern.export"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

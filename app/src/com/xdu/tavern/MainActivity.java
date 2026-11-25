@@ -92,7 +92,7 @@ public class MainActivity extends Activity {
 
     private static final String[] MENU = {
             "查看运行日志", "复制日志到剪贴板", "重试连接", "冷启动重启",
-            "重新解压内置资源", "应用内文件", "重新加载页面",
+            "重新解压内置资源", "应用内文件", "导出全部数据（zip）", "重新加载页面",
             "复位悬浮按钮位置", "数据与卸载说明"
     };
 
@@ -127,12 +127,14 @@ public class MainActivity extends Activity {
     private boolean webShown = false;
     private long lastBack = 0L;
     private ValueCallback<Uri[]> filePathCallback;
+    private ExportHelper exporter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         stRoot = new File(getNoBackupFilesDir(), "st");
         bootLog = new File(getNoBackupFilesDir(), "boot.log");
+        exporter = new ExportHelper(this, stRoot);
         buildSplash();
         new Thread(this::boot, "tavern-boot").start();
     }
@@ -541,9 +543,10 @@ public class MainActivity extends Activity {
                         case 3: restartCold(); break;
                         case 4: confirmWipe(); break;
                         case 5: showFiles(); break;
-                        case 6: if (web != null) web.reload(); else toast("页面尚未加载"); break;
-                        case 7: resetBubblePos(); break;
-                        case 8: showAbout(); break;
+                        case 6: exporter.exportFullData(); break;
+                        case 7: if (web != null) web.reload(); else toast("页面尚未加载"); break;
+                        case 8: resetBubblePos(); break;
+                        case 9: showAbout(); break;
                     }
                 })
                 .show();
@@ -642,37 +645,19 @@ public class MainActivity extends Activity {
     }
 
     private void showFiles() {
-        File dir = dlDir();
-        File[] fs = dir.listFiles();
-        List<String> lines = new ArrayList<>();
-        if (fs != null) {
-            for (File f : fs) {
-                if (f.isFile()) lines.add(f.getName() + "   " + (f.length() / 1024) + " KB");
-            }
-        }
-        if (lines.isEmpty()) lines.add("（暂无应用内下载文件）");
-        new AlertDialog.Builder(this)
-                .setTitle("应用内文件 · 卸载自动清除")
-                .setItems(lines.toArray(new String[0]), null)
-                .setPositiveButton("清空全部", (d, w) -> {
-                    File[] all = dir.listFiles();
-                    int n = 0;
-                    if (all != null) for (File f : all) if (f.isFile() && f.delete()) n++;
-                    toast("已清空 " + n + " 个应用内文件");
-                })
-                .setNegativeButton("关闭", null)
-                .show();
+        exporter.showFiles();
     }
 
     private void showAbout() {
         new AlertDialog.Builder(this)
                 .setTitle("数据与卸载说明")
                 .setMessage("本应用完全在应用内运行酒馆，不跳转外部浏览器。\n\n"
-                        + "· 角色卡、聊天记录、设置、扩展、下载的文件全部保存在应用私有目录\n"
-                        + "· 不申请外部存储权限，不写入公共 Download / DCIM / Documents\n"
+                        + "· 角色卡、聊天记录、设置、扩展默认全部保存在应用私有目录\n"
+                        + "· 不申请外部存储权限，默认不写入任何公共目录\n"
                         + "· 已关闭云备份与设备迁移，卸载时 Android 会自动删除全部私有数据\n"
-                        + "· 前端导出/下载会被接管并保存到应用内部，可在「应用内文件」查看\n"
-                        + "· 应用从未把任何文件写到外部存储，因此不会产生残留\n\n"
+                        + "· 前端导出/下载先落到「应用内文件」，保存后可立即「分享」或「保存到手机」\n"
+                        + "· ⋯ →「导出全部数据」可把角色卡与聊天记录一次性打包成 zip\n"
+                        + "· 只有你主动导出并选好位置，文件才会写到外部；这些由你自行管理，卸载不会删除\n\n"
                         + "模型推理来自你在酒馆里配置的 API（云端），本应用不内置模型。")
                 .setPositiveButton("知道了", null)
                 .show();
@@ -692,7 +677,7 @@ public class MainActivity extends Activity {
                     try (FileOutputStream o = new FileOutputStream(f)) {
                         o.write(data);
                     }
-                    toast("已保存到应用内部：" + f.getName() + "（卸载自动清除）");
+                    exporter.offerExport(f);
                 } catch (Exception e) {
                     toast("保存失败：" + e.getMessage());
                 }
@@ -714,7 +699,7 @@ public class MainActivity extends Activity {
                 int n;
                 while ((n = in.read(buf)) > 0) o.write(buf, 0, n);
             }
-            toast("已保存到应用内部：" + f.getName());
+            runOnUiThread(() -> exporter.offerExport(f));
         } catch (Exception e) {
             toast("下载失败：" + e.getMessage());
         } finally {
@@ -888,6 +873,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (exporter != null && exporter.onActivityResult(req, res, data)) return;
         if (req != REQ_FILE) return;
         Uri[] result = null;
         if (res == RESULT_OK && data != null) {
